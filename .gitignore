@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+# Environment
+.env
+*.yml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Scratch and results
+scratch/
+results/
+
+# System files
+.DS_Store
