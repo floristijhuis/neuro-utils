@@ -71,7 +71,7 @@ SUMMARY_CSV = PROJECTS_DIR / "pipeline_summary.csv"
 # Helper function to run single module
 # --------------------------
 
-def run_module(project, module_name, project_yaml, subjects=None, sessions=None, runs=None, extra_args=None):
+def run_module(project, module_name, project_yaml, project_logs_dir, subjects=None, sessions=None, runs=None, extra_args=None):
     """Run a module using a nohup process with nohup and logging."""
     # First, load config for settings
     config = load_yaml(project_yaml)
@@ -82,7 +82,7 @@ def run_module(project, module_name, project_yaml, subjects=None, sessions=None,
     extra_args = extra_args or []
 
     # Create log file
-    log_file = LOGS_DIR / project / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{module_name}.log" 
+    log_file = project_logs_dir/ f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{module_name}.log"
 
     # Build command
     cmd = ["nohup", "python", "-u", "-m", f"scripts.{module_name}"]  # assumes module_script is a python module in scripts/. maybe nohup should be removed as the pipeline itself is also called with nohup
@@ -150,7 +150,7 @@ def main():
         else:
             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), f": Running module: {module_name}")
             try:
-                run_module(args.project, module_name, project_yaml, subjects, sessions, runs, args.extra_args)
+                run_module(args.project, module_name, project_yaml, project_logs_dir, subjects, sessions, runs, args.extra_args)
                 print(f"Finished module {module_name} at: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 print("-" * 50, '\n')
             except Exception as e:
