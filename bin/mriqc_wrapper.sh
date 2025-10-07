@@ -60,4 +60,5 @@ docker run --rm  \
   --run-id ${RUNS} \
   --nprocs ${NPROCS} \
   --mem_gb ${MEM_GB} \
+  --verbose \
   --no-sub
