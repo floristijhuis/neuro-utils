@@ -24,7 +24,6 @@ __status__ = "Production" ### Production = still being developed. Else: Conclude
 import csv
 import shutil
 import yaml
-import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -41,7 +40,7 @@ def remove_work_dir(work_dir: str):
         print(f"Work directory {work_dir} does not exist or is not a directory.")
 
 def copytree_gvfs(src, dst):
-    """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive."""
+    """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse."""
     src = Path(src)
     dst = Path(dst)
     dst.mkdir(parents=True, exist_ok=True)
@@ -98,8 +97,7 @@ def move_outputs(temp_output_dir: str, final_output_dir: str, overwrite: bool = 
         print(f"Temp dir {temp_output_dir} not empty, manual cleanup may be needed")
 
 def log_summary(logfile, project, subject, session, run, module, success, errmsg=""):
-    """Append a summary entry to the CSV log.
-    If subject/session/run are lists, join their entries with spaces."""
+    """Append a summary entry to the CSV log. If subject/session/run are lists, join their entries with spaces."""
     logfile = Path(logfile)
     logfile.parent.mkdir(parents=True, exist_ok=True)
     write_header = not logfile.exists()
@@ -125,6 +123,7 @@ def log_summary(logfile, project, subject, session, run, module, success, errmsg
         ])
 
 def load_yaml(yaml_path: str):
+    """Loads a YAML file and returns its contents as a dictionary."""
     yaml_path = Path(yaml_path)
     if not yaml_path.exists():
         raise FileNotFoundError(f"Config file {yaml_path} not found.")

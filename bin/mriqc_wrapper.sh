@@ -3,21 +3,16 @@
 ## make sure that the docker daemon is activated and the image is pulled into the local system if not already present. This is necessary on Tux17 (rootless Docker setup).
 
 ## Usage example:
-## ./mriqc_wrapper.sh <bids_dir> <output_dir> <scratch_dir>
+## bash mriqc_wrapper.sh <bids_dir> <output_dir> <scratch_dir> "<sub-01 sub-02 ...>" "<ses-01 ses-02 ...>" "<run-01 run-02 ...>" <n_cpus> <mem_gb>
 
 BIDS_DIR=$1
 OUT_DIR=$2
 WORK_DIR=$3
-SUBJECTS_STR=$4
-SESSIONS_STR=$5
-RUNS_STR=$6
+SUBJECTS="$4"
+SESSIONS="$5"
+RUNS="$6"
 NPROCS=${7:-16}
 MEM_GB=${8:-64}
-
-# Convert space-separated strings to arrays
-read -ra SUBJECTS <<< "$SUBJECTS_STR"
-read -ra SESSIONS <<< "$SESSIONS_STR"
-read -ra RUNS <<< "$RUNS_STR"
 
 IMAGE="nipreps/mriqc:24.0.2"
 
@@ -35,7 +30,16 @@ if ! docker image inspect $IMAGE > /dev/null 2>&1; then
     docker pull $IMAGE
 fi
 
-echo "Running MRIqc..."
+echo "Running MRIqc with the following settings..."
+echo "BIDS directory: $BIDS_DIR"
+echo "Output directory: $OUT_DIR"
+echo "Working directory: $WORK_DIR"
+echo "Subjects: $SUBJECTS"
+echo "Sessions: $SESSIONS"
+echo "Runs: $RUNS"
+echo "Number of processors: $NPROCS"
+echo "Memory (GB): $MEM_GB"
+echo ""
 
 # Run MRIqc command; This might be adjusted per project if specific options are needed or should be added.
 # Per-line options:

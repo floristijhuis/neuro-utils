@@ -2,18 +2,31 @@
 # -*- coding: utf-8 -*-
 
 """
-Master Pipeline script
-Governs modules for processing (neuroimaging) data, both preprocessing, processing, postprocessing.
-It assumes the presence of a project-specific directory with yaml that contains settings and descriptions of the dataset.
-This project-specific directoyry should be located in /home/USER/projects/<project_name>. Within this project folder, the master
-script looks for a "configs" folder with a "dataset.yml" file that contains the dataset description and settings.
-If this file is not found, the script will exit with an error.
+===================================================================================================
+                        PIPELINE COORDINATION SCRIPT FOR NEUROIMAGING
+===================================================================================================
+Running this script coordinates modules for processing (neuroimaging) data, both preprocessing, processing, postprocessing.
+Each module is a separate script located in the "scripts" folder. The modules can be run sequentially or independently.
+The script uses argparse to handle command-line arguments, allowing users to specify the project name, modules to run,
+and optional subject/session/run filters.
 
-Generally, the pipeline copies all necessary files from the mounted project folder to a processing folder on the fast local scratch disk.
+It assumes the presence of a project-specific directory with yaml that contains settings and descriptions of the dataset.
+This project-specific directory should be located in ~/projects/<project_name>. Within this project folder, the master
+script looks for a "configs" folder with a "dataset.yml" file that contains the dataset description and settings.
+These settings contain the project name, BIDS directory, derivatives directory, scratch directory, subjects, sessions, and runs in the dataset,
+number of CPUs, memory in GB, and other relevant settings.
+
+During each step, the pipeline copies all necessary files from the mounted project folder to a processing folder on the fast local scratch disk.
 After processing, the outputs are copied back to the project folder in a "derivatives" folder.
 
 When you run the pipeline, make sure to use nohup, so that it keeps running when you log out:
 nohup python -u pipeline.py -p <project_name> -m <modules> & disown
+
+Modules that can be used:
+01: mriqc - MRIQC preprocessing module for a BIDS dataset.
+02: fmriprep - fMRIPrep preprocessing module for a BIDS dataset.
+
+===================================================================================================
 """
 
 __author__ = "Floris Tijhuis"
@@ -36,7 +49,6 @@ import argparse
 import subprocess
 import sys
 import contextlib
-import yaml
 import os
 from datetime import datetime
 from pathlib import Path
@@ -73,7 +85,7 @@ def run_module(project, module_name, project_yaml, subjects=None, sessions=None,
     extra_args = extra_args or []
 
     # Create log file
-    log_file = LOGS_DIR / project / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{module_name}.log" 
+    log_file = LOGS_DIR / project / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{module_name}.log" 
 
     # Build command
     cmd = ["nohup", "python", "-u", "-m", f"scripts.{module_name}"]  # assumes module_script is a python module in scripts/. maybe nohup should be removed as the pipeline itself is also called with nohup
@@ -89,14 +101,14 @@ def run_module(project, module_name, project_yaml, subjects=None, sessions=None,
 
     with open(log_file, "w") as f, contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
         try:
-            print(f"Running module {module_name} with command: {' '.join(cmd)}", flush=True)
+            print(f"Running module {module_name} with command: {' '.join(cmd)} \n", flush=True)
             subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, check=True, text=True)
             log_summary(SUMMARY_CSV, project, subjects, sessions, runs, module_name, True)
             print(f"[SUCCESS] Module {module_name} finished for subjects {subjects}")
         except subprocess.CalledProcessError as e:
             log_summary(SUMMARY_CSV, project, subjects, sessions, runs, module_name, False, str(e))
             print(f"[ERROR] Module {module_name} failed for subjects {subjects}")
-            return False
+            raise
     return True
 
 # --------------------------
@@ -104,7 +116,7 @@ def run_module(project, module_name, project_yaml, subjects=None, sessions=None,
 # --------------------------
 def main():
 
-    parser = argparse.ArgumentParser(description="Master pipeline script for neuroimaging data processing.")
+    parser = argparse.ArgumentParser(description="Master pipeline script for neuroimaging data processing. See script header for details.")
     parser.add_argument("-p", "--project", required=True, help="Project name")
     parser.add_argument("-m", "--modules", nargs="+", required=True, help="Space-separated list of modules to run")
     parser.add_argument("-s", "--subject", nargs="+", help="Space-separated list of subject IDs (optional)")
@@ -115,7 +127,7 @@ def main():
 
     # Load configs and set paths
     project_path = PROJECTS_DIR / args.project
-    project_yaml = project_path / "configs" / "preproc.yaml"
+    project_yaml = project_path / "configs" / "dataset.yaml"
 
     # Creating project-specific log dir
     project_logs_dir = LOGS_DIR / args.project
