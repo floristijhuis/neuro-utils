@@ -64,11 +64,8 @@ PROJECTS_DIR = Path(os.path.expanduser("~/projects"))
 MODULE_DICT = {"01": "mriqc", 
                "02": "fmriprep"}
 
-LOGS_DIR = PROJECTS_DIR / "pipeline_logs"
-LOGS_DIR.mkdir(exist_ok=True)
-
 # Define summary csv
-SUMMARY_CSV = LOGS_DIR / "pipeline_summary.csv"
+SUMMARY_CSV = PROJECTS_DIR / "pipeline_summary.csv"
 
 # --------------------------
 # Helper function to run single module
@@ -130,8 +127,8 @@ def main():
     project_yaml = project_path / "configs" / "dataset.yaml"
 
     # Creating project-specific log dir
-    project_logs_dir = LOGS_DIR / args.project
-    print("Creating project-specific log dir:", project_logs_dir)
+    project_logs_dir = project_path / "logs"
+    print("Creating project-specific log dir if it does not exist already:", project_logs_dir)
     project_logs_dir.mkdir(exist_ok=True)
 
     # Use space-separated lists for subjects/sessions/runs
