@@ -33,7 +33,7 @@ from pathlib import Path
 import git
 
 # Custom imports ### (Put here custom libraries)
-from utils.utils import move_outputs, remove_work_dir, load_yaml, copytree_gvfs
+from utils.utils import remove_dir, load_yaml, copytree_gvfs
 
 def main():
     # --------------------------
@@ -80,7 +80,7 @@ def main():
     work_dir_mriqc.mkdir(parents=True, exist_ok=True)
     temp_output_dir_mriqc.mkdir(parents=True, exist_ok=True)
 
-    # Move the BIDS directory to scratch
+    # Copy the BIDS directory to scratch
     print("Copying BIDS directory to scratch...")
     copytree_gvfs(bids_dir, temp_bids_dir) # This may need to be changed, as it copies the entire BIDS folder, which is not necessary if you run on specific subjects only.
     
@@ -123,11 +123,10 @@ def main():
     # --------------------------
     final_output_dir_mriqc = derivatives_dir / "mriqc"
     print(f"Moving outputs from {temp_output_dir_mriqc} → {final_output_dir_mriqc}")
-    move_outputs(temp_output_dir_mriqc, final_output_dir_mriqc, overwrite=True)
+    copytree_gvfs(temp_output_dir_mriqc, final_output_dir_mriqc, remove_src=True)
 
-    print(f"Removing work directory {work_dir_mriqc} to save space...")
-    remove_work_dir(work_dir_mriqc)
-    remove_work_dir(scratch_dir_mriqc)
+    print(f"Removing work directory {scratch_dir_mriqc} to save space...")
+    remove_dir(scratch_dir_mriqc)
 
     print("MRIqc processing complete. \n")
     print(f"Final outputs located at: {final_output_dir_mriqc}")

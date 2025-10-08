@@ -27,74 +27,45 @@ import yaml
 from pathlib import Path
 from datetime import datetime
 
-def remove_work_dir(work_dir: str):
-    """Removes work directory if it exists."""
-    work_dir = Path(work_dir)
-    if work_dir.exists() and work_dir.is_dir():
+def remove_dir(dir_path: str):
+    """Removes directory if it exists."""
+    dir_path = Path(dir_path)
+    if dir_path.exists() and dir_path.is_dir():
         try:
-            shutil.rmtree(work_dir)
-            print(f"Successfully removed work directory: {work_dir}")
+            shutil.rmtree(dir_path)
+            print(f"Successfully removed directory: {dir_path}")
         except Exception as e:
-            print(f"Error removing work directory {work_dir}: {e}")
+            print(f"Error removing directory {dir_path}: {e}")
     else:
-        print(f"Work directory {work_dir} does not exist or is not a directory.")
+        print(f"Directory {dir_path} does not exist or is not a directory.")
 
-def copytree_gvfs(src, dst):
-    """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse."""
+def copytree_gvfs(src, dst, remove_src=False):
+    """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse. If remove_src 
+    is True, source files are removed after copying."""
     src = Path(src)
     dst = Path(dst)
+
+    if not src.exists():
+        raise FileNotFoundError(f"Source dir {src} does not exist")
+    
     dst.mkdir(parents=True, exist_ok=True)
 
     for item in src.iterdir():
         dest_item = dst / item.name
         if item.is_dir():
-            copytree_gvfs(item, dest_item)
+            copytree_gvfs(item, dest_item, remove_src)
         else:
+            print("Copying/Moving file:", item, "→", dest_item)
             shutil.copyfile(item, dest_item)
-
-def move_outputs(temp_output_dir: str, final_output_dir: str, overwrite: bool = True):
-    """Moves outputs from temp directory to final output directory, handling cross-filesystem moves.
-    Removes temp directory if empty after move."""
-    temp_output_dir = Path(temp_output_dir)
-    final_output_dir = Path(final_output_dir)
-
-    if not temp_output_dir.exists():
-        raise FileNotFoundError(f"Temp dir {temp_output_dir} does not exist")
-
-    final_output_dir.mkdir(parents=True, exist_ok=True)
-
-    for item in temp_output_dir.iterdir():
-        dest = final_output_dir / item.name
-
-        if dest.exists():
-            if overwrite:
-                if dest.is_dir():
-                    shutil.rmtree(dest)
-                else:
-                    dest.unlink()
-                print(f"Overwriting {dest}")
-            else:
-                print(f"Skipping existing {dest}")
-                continue
-
-        try:
-            # Try a normal move (fast if on same filesystem)
-            shutil.move(str(item), str(dest))
-        except OSError as e:
-            print(f"Cannot move directly. Copying {item} instead...")
-            if item.is_dir():
-                copytree_gvfs(item, dest)
-                shutil.rmtree(item)
-            else:
-                shutil.copyfile(item, dest)
+            if remove_src:
                 item.unlink()
 
-    # Try cleaning up temp dir if empty
-    try:
-        temp_output_dir.rmdir()
-        print(f"Removed empty temp dir {temp_output_dir}")
-    except OSError:
-        print(f"Temp dir {temp_output_dir} not empty, manual cleanup may be needed")
+    if remove_src:
+        try:
+            print("Removing source directory:", src)
+            src.rmdir()
+        except OSError as e:
+            print(f"Could not remove source directory {src} (it might not be empty): {e}")
 
 def log_summary(logfile, project, subject, session, run, module, success, errmsg=""):
     """Append a summary entry to the CSV log. If subject/session/run are lists, join their entries with spaces."""
