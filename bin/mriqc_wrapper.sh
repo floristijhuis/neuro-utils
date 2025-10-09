@@ -40,7 +40,6 @@ echo ""
   # Mount input directory as read-only
   # Mount output directory
   # Mount working directory
-  # Positional arguments; Create another script for group level (?). 
 
 docker run --rm  \
   -v "${BIDS_DIR}":/data:ro \
