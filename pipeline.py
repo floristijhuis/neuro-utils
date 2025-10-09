@@ -59,7 +59,8 @@ from utils.utils import log_summary, load_yaml
 # --------------------------
 PROJECTS_DIR = Path(os.path.expanduser("~/projects"))
 
-MODULE_DICT = {"01": "mriqc", 
+MODULE_DICT = {"01": "mriqc",
+               "01b": "mriqc_group",
                "02": "fmriprep"}
 
 # Define summary csv
