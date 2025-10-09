@@ -8,11 +8,8 @@
 BIDS_DIR=$1
 OUT_DIR=$2
 WORK_DIR=$3
-SUBJECTS="$4"
-SESSIONS="$5"
-RUNS="$6"
-NPROCS=${7:-16}
-MEM_GB=${8:-64}
+NPROCS=${4:-16}
+MEM_GB=${5:-64}
 
 IMAGE="nipreps/mriqc:24.0.2"
 
@@ -34,9 +31,6 @@ echo "Running MRIqc with the following settings..."
 echo "BIDS directory: $BIDS_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Working directory: $WORK_DIR"
-echo "Subjects: $SUBJECTS"
-echo "Sessions: $SESSIONS"
-echo "Runs: $RUNS"
 echo "Number of processors: $NPROCS"
 echo "Memory (GB): $MEM_GB"
 echo ""
@@ -55,9 +49,7 @@ docker run --rm  \
   $IMAGE \
   /data /out participant \
   --work-dir /work \
-  --participant-label ${SUBJECTS} \
-  --session-id ${SESSIONS} \
-  --run-id ${RUNS} \
+  --bids-filter-file /data/bids_filter_file.json \
   --nprocs ${NPROCS} \
   --mem_gb ${MEM_GB} \
   --verbose \

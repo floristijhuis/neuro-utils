@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
+#!/usr/bin/env python
 """
 ===================================================================================================
                         PIPELINE COORDINATION SCRIPT FOR NEUROIMAGING
@@ -119,7 +117,7 @@ def main():
     parser.add_argument("-s", "--subject", nargs="+", help="Space-separated list of subject IDs (optional)")
     parser.add_argument("-n", "--session", nargs="+", help="Space-separated list of session numbers (optional)")
     parser.add_argument("-r", "--run", nargs="+", help="Space-separated list of run numbers (optional)")
-    parser.add_argument("-x", "--extra_args", nargs="*", help="Extra args for module scripts") # I'm not doing anything with this at the moment, but might become relevant in the future
+    parser.add_argument("-x", "--extra_args", nargs=argparse.REMAINDER, help="Extra args for module scripts") # I'm not doing anything with this at the moment, but might become relevant in the future
     args = parser.parse_args()
 
     # Load configs and set paths
@@ -135,6 +133,7 @@ def main():
     subjects = args.subject if args.subject else None
     sessions = args.session if args.session else None
     runs = args.run if args.run else None
+    extra_args = list(args.extra_args or [])
 
     # Load processing modules
     modules = args.modules
@@ -150,7 +149,7 @@ def main():
         else:
             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), f": Running module: {module_name}")
             try:
-                run_module(args.project, module_name, project_yaml, project_logs_dir, subjects, sessions, runs, args.extra_args)
+                run_module(args.project, module_name, project_yaml, project_logs_dir, subjects, sessions, runs, extra_args)
                 print(f"Finished module {module_name} at: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 print("-" * 50, '\n')
             except Exception as e:

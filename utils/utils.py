@@ -39,7 +39,7 @@ def remove_dir(dir_path: str):
     else:
         print(f"Directory {dir_path} does not exist or is not a directory.")
 
-def copytree_gvfs(src, dst, remove_src=False):
+def copytree_gvfs(src, dst, remove_src=False, silent=False):
     """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse. If remove_src 
     is True, source files are removed after copying."""
     src = Path(src)
@@ -55,7 +55,8 @@ def copytree_gvfs(src, dst, remove_src=False):
         if item.is_dir():
             copytree_gvfs(item, dest_item, remove_src)
         else:
-            print("Copying/Moving file:", item, "→", dest_item)
+            if not silent:
+                ("Copying/Moving file:", item, "→", dest_item)
             shutil.copyfile(item, dest_item)
             if remove_src:
                 item.unlink()
@@ -105,3 +106,17 @@ def load_yaml(yaml_path: str):
         config = yaml.safe_load(f)
 
     return config
+
+def update_bids_filter_file_entry(entry: dict, field: str, requested: list):
+    """
+    If entry contains field (as a list), keep only those requested values
+    that are present in the original list. If none match, set to empty list.
+    Returns True if the field was present and processed, False otherwise.
+    """
+    if field in entry and isinstance(entry[field], list):
+        original = entry[field]
+        allowed = [x for x in requested if x in original]
+        entry[field] = allowed
+        if len(allowed) < len(requested):
+            missing = set(requested) - set(allowed)
+            print(f"Warning: {field} values {sorted(missing)} not present for this entry — they were dropped.")
