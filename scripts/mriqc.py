@@ -26,6 +26,7 @@ __status__ = "Production" ### Production = still being developed. Else: Conclude
 import subprocess
 import argparse
 from pathlib import Path
+from datetime import datetime
 
 # Third-party imports  ### (Put here third-party libraries - https://pypi.org/)
 import git
@@ -63,6 +64,12 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # --------------------------
+    # Start timer
+    # --------------------------
+    start_time = datetime.now()
+    print(f"[{start_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc module started")
 
     # --------------------------
     # Load configuration
@@ -156,6 +163,14 @@ def main():
 
     print("MRIqc processing complete. \n")
     print(f"Final outputs located at: {final_output_dir_mriqc}")
+
+    # --------------------------
+    # End timer
+    # --------------------------
+    end_time = datetime.now()
+    elapsed = end_time - start_time
+    print(f"[{end_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc module finished")
+    print(f"Elapsed time: {elapsed}")
 
 if __name__ == "__main__":
     main()

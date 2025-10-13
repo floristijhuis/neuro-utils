@@ -29,13 +29,13 @@ __status__ = "Production" ### Production = still being developed. Else: Conclude
 import subprocess
 import argparse
 from pathlib import Path
+from datetime import datetime
 
 # Third-party imports  ### (Put here third-party libraries - https://pypi.org/)
 import git
 
 # Custom imports ### (Put here custom libraries)
-from utils.utils import remove_dir, load_yaml, copytree_gvfs, update_bids_filter_file_entry
-import json
+from utils.utils import remove_dir, load_yaml, copytree_gvfs
 from pathlib import Path
 
 def main():
@@ -53,6 +53,12 @@ def main():
     parser.add_argument("-r", "--runs", nargs="+", help="Space-separated list of run numbers (optional)")
 
     args = parser.parse_args()
+
+    # --------------------------
+    # Start timer
+    # --------------------------
+    start_time = datetime.now()
+    print(f"[{start_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc groups module started")
 
     # --------------------------
     # Load configuration
@@ -127,6 +133,14 @@ def main():
 
     print("MRIqc group-level processing complete. \n")
     print(f"Final outputs located at: {final_output_dir_mriqc}")
+
+    # --------------------------
+    # End timer
+    # --------------------------
+    end_time = datetime.now()
+    elapsed = end_time - start_time
+    print(f"[{end_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc group module finished")
+    print(f"Elapsed time: {elapsed}")
 
 if __name__ == "__main__":
     main()
