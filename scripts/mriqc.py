@@ -25,6 +25,7 @@ __status__ = "Production" ### Production = still being developed. Else: Conclude
 # Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
 import subprocess
 import argparse
+import logging
 from pathlib import Path
 from datetime import datetime
 
@@ -35,6 +36,14 @@ import git
 from utils.utils import remove_dir, load_yaml, copytree_gvfs, update_bids_filter_file_entry
 import json
 from pathlib import Path
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+log = logging.getLogger(__name__)
 
 def main():
     # --------------------------
@@ -69,7 +78,7 @@ def main():
     # Start timer
     # --------------------------
     start_time = datetime.now()
-    print(f"[{start_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc module started")
+    log.info("MRIqc module started")
 
     # --------------------------
     # Load configuration
@@ -105,11 +114,11 @@ def main():
     temp_output_dir_mriqc.mkdir(parents=True, exist_ok=True)
 
     # Copy the BIDS directory to scratch
-    print("Copying BIDS directory to scratch...")
+    log.info("Copying BIDS directory to scratch...")
     copytree_gvfs(bids_dir, temp_bids_dir, silent=True) # This may need to be changed, as it copies the entire BIDS folder, which is not necessary if you run on specific subjects only.
     
     # Modulate BIDS filter file based on your input arguments for subjects, sessions, runs, and anat/func only
-    print("Generating BIDS filter file based on your inputs...")
+    log.info("Generating BIDS filter file based on your inputs...")
     with Path(filter_file).open("r") as fh:
         bids_filter = json.load(fh)
 
@@ -148,29 +157,28 @@ def main():
     # --------------------------
     # Run MRIQC
     # --------------------------
-    print(f"Running MRIqc wrapper with command {' '.join(cmd)} \n")
+    log.info(f"Running MRIqc wrapper with command {' '.join(cmd)} \n")
     subprocess.run(cmd, check=True)
 
     # --------------------------
     # Postprocessing: move + cleanup
     # --------------------------
     final_output_dir_mriqc = derivatives_dir / "mriqc"
-    print(f"Moving outputs from {temp_output_dir_mriqc} → {final_output_dir_mriqc}")
+    log.info(f"Moving outputs from {temp_output_dir_mriqc} → {final_output_dir_mriqc}")
     copytree_gvfs(temp_output_dir_mriqc, final_output_dir_mriqc, remove_src=True)
 
-    print(f"Removing work directory {scratch_dir_mriqc} to save space...")
+    log.info(f"Removing work directory {scratch_dir_mriqc} to save space...")
     remove_dir(scratch_dir_mriqc)
 
-    print("MRIqc processing complete. \n")
-    print(f"Final outputs located at: {final_output_dir_mriqc}")
+    log.info("MRIqc processing complete. \n")
+    log.info(f"Final outputs located at: {final_output_dir_mriqc}")
 
     # --------------------------
     # End timer
     # --------------------------
     end_time = datetime.now()
     elapsed = end_time - start_time
-    print(f"[{end_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc module finished")
-    print(f"Elapsed time: {elapsed}")
+    log.info(f"Elapsed time: {elapsed}")
 
 if __name__ == "__main__":
     main()

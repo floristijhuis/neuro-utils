@@ -28,6 +28,7 @@ __status__ = "Production" ### Production = still being developed. Else: Conclude
 # Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
 import subprocess
 import argparse
+import logging
 from pathlib import Path
 from datetime import datetime
 
@@ -37,6 +38,13 @@ import git
 # Custom imports ### (Put here custom libraries)
 from utils.utils import remove_dir, load_yaml, copytree_gvfs
 from pathlib import Path
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(threadName)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+log = logging.getLogger(__name__)
 
 def main():
     # --------------------------
@@ -58,7 +66,7 @@ def main():
     # Start timer
     # --------------------------
     start_time = datetime.now()
-    print(f"[{start_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc groups module started")
+    log.info("MRIqc groups module started")
 
     # --------------------------
     # Load configuration
@@ -98,10 +106,10 @@ def main():
     temp_output_dir_mriqc.mkdir(parents=True, exist_ok=True)
 
     # Copy the BIDS directory to scratch
-    print("Copying BIDS directory to scratch...")
+    log.info("Copying BIDS directory to scratch...")
     copytree_gvfs(bids_dir, temp_bids_dir, silent=True)
     # Copy pre-existing MRIqc output to scratch
-    print("Copying BIDS directory to scratch...")
+    log.info("Copying BIDS directory to scratch...")
     copytree_gvfs(final_output_dir_mriqc, temp_output_dir_mriqc, silent=True)
 
     cmd = [
@@ -118,29 +126,28 @@ def main():
     # --------------------------
     # Run MRIQC
     # --------------------------
-    print(f"Running MRIqc group-level wrapper with command {' '.join(cmd)} \n")
+    log.info(f"Running MRIqc group-level wrapper with command {' '.join(cmd)} \n")
     subprocess.run(cmd, check=True)
 
     # --------------------------
     # Postprocessing: move + cleanup
     # --------------------------
     final_output_dir_mriqc = derivatives_dir / "mriqc"
-    print(f"Moving outputs from {temp_output_dir_mriqc} → {final_output_dir_mriqc}; overwriting original MRIqc output")
+    log.info(f"Moving outputs from {temp_output_dir_mriqc} → {final_output_dir_mriqc}; overwriting original MRIqc output")
     copytree_gvfs(temp_output_dir_mriqc, final_output_dir_mriqc, remove_src=True)
 
-    print(f"Removing work directory {scratch_dir_mriqc} to save space...")
+    log.info(f"Removing work directory {scratch_dir_mriqc} to save space...")
     remove_dir(scratch_dir_mriqc)
 
-    print("MRIqc group-level processing complete. \n")
-    print(f"Final outputs located at: {final_output_dir_mriqc}")
+    log.info("MRIqc group-level processing complete. \n")
+    log.info(f"Final outputs located at: {final_output_dir_mriqc}")
 
     # --------------------------
     # End timer
     # --------------------------
     end_time = datetime.now()
     elapsed = end_time - start_time
-    print(f"[{end_time.strftime('%Y-%m-%d %H:%M:%S')}] MRIqc group module finished")
-    print(f"Elapsed time: {elapsed}")
+    log.info(f"Elapsed time: {elapsed}")
 
 if __name__ == "__main__":
     main()
