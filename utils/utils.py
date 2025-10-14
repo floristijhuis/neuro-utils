@@ -41,9 +41,11 @@ def remove_dir(dir_path: str):
 
 def copytree_gvfs(src, dst, remove_src=False, silent=False):
     """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse. If remove_src 
-    is True, source files are removed after copying."""
+    is True, source files are removed after copying.
+    NB: This will fail when you have cross-folder symlinks."""
     src = Path(src)
     dst = Path(dst)
+    copied_items = []
 
     if not src.exists():
         raise FileNotFoundError(f"Source dir {src} does not exist")
@@ -54,18 +56,28 @@ def copytree_gvfs(src, dst, remove_src=False, silent=False):
         dest_item = dst / item.name
         if item.is_dir():
             copytree_gvfs(item, dest_item, remove_src)
+            copied_items.append(item)
         else:
             if not silent:
                 ("Copying/Moving file:", item, "→", dest_item)
             shutil.copyfile(item, dest_item)
-            if remove_src:
-                item.unlink()
+            copied_items.append(item)
 
     if remove_src:
+        # First, remove all copied items
+        for item in copied_items:
+            try:
+                if item.is_dir():
+                    remove_dir(item)
+                else:
+                    item.unlink()
+            except Exception as e:
+                print(f"Error removing {item}: {e}")
+        
+        # Next, remove source dir
         try:
-            print("Removing source directory:", src)
             src.rmdir()
-        except OSError as e:
+        except Exception as e:
             print(f"Could not remove source directory {src} (it might not be empty): {e}")
 
 def log_summary(logfile, project, subject, session, run, module, success, errmsg=""):
