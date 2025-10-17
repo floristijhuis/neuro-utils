@@ -28,57 +28,62 @@ from pathlib import Path
 from datetime import datetime
 
 def remove_dir(dir_path: str):
-    """Removes directory if it exists."""
+    """Removes a directory tree safely (never follows symlinks)."""
     dir_path = Path(dir_path)
-    if dir_path.exists() and dir_path.is_dir():
-        try:
-            shutil.rmtree(dir_path)
-            print(f"Successfully removed directory: {dir_path}")
-        except Exception as e:
-            print(f"Error removing directory {dir_path}: {e}")
-    else:
-        print(f"Directory {dir_path} does not exist or is not a directory.")
 
-def copytree_gvfs(src, dst, remove_src=False, silent=False):
-    """Copies directory in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse. If remove_src 
-    is True, source files are removed after copying.
-    NB: This will fail when you have cross-folder symlinks."""
+    if not dir_path.exists():
+        raise FileNotFoundError(f"Directory {dir_path} does not exist.")
+    if not dir_path.is_dir():
+        raise NotADirectoryError(f"{dir_path} is not a directory.")
+
+    # Walk the tree manually so we can control symlink handling
+    for child in dir_path.iterdir():
+        try:
+            if child.is_symlink():
+                # Never follow symlinks; just unlink them
+                child.unlink()
+            elif child.is_dir():
+                remove_dir(child)  # recurse
+            else:
+                child.unlink()
+        except Exception as e:
+            raise RuntimeError(f"Failed to remove {child}: {e}") from e
+
+    try:
+        dir_path.rmdir()
+        print(f"Removed directory: {dir_path}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to remove directory {dir_path}: {e}") from e
+
+def copytree_gvfs(src, dst, remove_src=False, silent=True):
+    """Copies directory contents (!) in a way that does not crash when copying from Tux17 to mounted FMG drive or inverse. If remove_src 
+    is True, source files are removed after copying."""
     src = Path(src)
     dst = Path(dst)
-    copied_items = []
 
-    if not src.exists():
+    if not src.exists() or not src.is_dir():
         raise FileNotFoundError(f"Source dir {src} does not exist")
     
+
     dst.mkdir(parents=True, exist_ok=True)
 
     for item in src.iterdir():
         dest_item = dst / item.name
         if item.is_dir():
-            copytree_gvfs(item, dest_item, remove_src)
-            copied_items.append(item)
+            copytree_gvfs(item, dest_item, remove_src=False, silent=silent)
         else:
             if not silent:
-                ("Copying/Moving file:", item, "→", dest_item)
-            shutil.copyfile(item, dest_item)
-            copied_items.append(item)
+                print(f"Copying/Moving: {str(item)} → {str(dest_item)}", flush=True)
+            try:
+                shutil.copyfile(item, dest_item, follow_symlinks=True)
+            except Exception as e:
+                print(f"Error trying to copy {item} to destination, aborting...", flush=True)
+                raise
 
     if remove_src:
-        # First, remove all copied items
-        for item in copied_items:
-            try:
-                if item.is_dir():
-                    remove_dir(item)
-                else:
-                    item.unlink()
-            except Exception as e:
-                print(f"Error removing {item}: {e}")
-        
-        # Next, remove source dir
-        try:
-            src.rmdir()
-        except Exception as e:
-            print(f"Could not remove source directory {src} (it might not be empty): {e}")
+        if not silent:
+            print(f"Removing source directory {src}...", flush=True)
+        remove_dir(src)
 
 def log_summary(logfile, project, subject, session, run, module, success, errmsg=""):
     """Append a summary entry to the CSV log. If subject/session/run are lists, join their entries with spaces."""
