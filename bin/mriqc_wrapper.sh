@@ -3,7 +3,7 @@
 ## make sure that the docker daemon is activated and the image is pulled into the local system if not already present. This is necessary on Tux17 (rootless Docker setup).
 
 ## Usage example:
-## bash mriqc_wrapper.sh <bids_dir> <output_dir> <scratch_dir> "<sub-01 sub-02 ...>" "<ses-01 ses-02 ...>" "<run-01 run-02 ...>" <n_cpus> <mem_gb>
+## bash mriqc_wrapper.sh <bids_dir> <output_dir> <scratch_dir> <n_cpus (OPTIONAL)> <mem_gb (OPTIONAL)>
 
 BIDS_DIR=$1
 OUT_DIR=$2
