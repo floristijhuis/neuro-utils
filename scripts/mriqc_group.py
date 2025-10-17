@@ -109,7 +109,7 @@ def main():
     log.info("Copying BIDS directory to scratch...")
     copytree_gvfs(bids_dir, temp_bids_dir, silent=True)
     # Copy pre-existing MRIqc output to scratch
-    log.info("Copying BIDS directory to scratch...")
+    log.info("Copying MRIqc output directory to scratch...")
     copytree_gvfs(final_output_dir_mriqc, temp_output_dir_mriqc, silent=True)
 
     cmd = [
