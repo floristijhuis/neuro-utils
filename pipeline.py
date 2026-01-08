@@ -23,7 +23,8 @@ nohup python -u pipeline.py -p <project_name> -m <modules> & disown
 Modules that can be used:
 01: mriqc - MRIqc preprocessing module for a BIDS dataset.
 01: mriqc_group - MRIqc preprocessing module for group-level analysis (assumes MRIQC has been run on subject level)
-02: fmriprep - fMRIPrep preprocessing module for a BIDS dataset.
+02: freesurfer - Run Freesurfer surface reconstruction based on T1 scans.
+03: fmriprep - fMRIPrep preprocessing module for a BIDS dataset.
 
 ===================================================================================================
 """
@@ -62,7 +63,8 @@ PROJECTS_DIR = Path(os.path.expanduser("~/projects"))
 
 MODULE_DICT = {"01": "mriqc",
                "01b": "mriqc_group",
-               "02": "freesurfer"}
+               "02": "freesurfer",
+               "03": "fmriprep"}
 
 # Define summary csv
 SUMMARY_CSV = PROJECTS_DIR / "pipeline_summary.csv"

@@ -67,7 +67,7 @@ def run_recon_all(subject, input_scan, output_dir, n_threads_max, hemi_in_parall
         cmd += ["-parallel"]
 
     # --------------------------
-    # Run MRIQC
+    # Run Freesurfer
     # --------------------------
     log.info(f"[{subject}] recon-all started")
     log.info("Logs will not be printed to this log file, go to Freesurfer output dir for subject-specific logs")
