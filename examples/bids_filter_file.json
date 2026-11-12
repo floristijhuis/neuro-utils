@@ -1,0 +1,4 @@
+{
+    "t1w": {"datatype": "anat", "acquisition": null, "suffix": "T1w"},
+    "bold": {"datatype": "func", "acquisition": null, "run": ["1", "2"], "suffix": "bold"}
+}

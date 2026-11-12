@@ -1,17 +1,17 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
+*.egg-info/
+build/
+
 # Environment
 .env
-*.yml
 
 # Jupyter
 .ipynb_checkpoints/
 
-# Scratch and results
-scratch/
-results/
+# Old v0 files kept locally during the v1 transition (v0 is tagged as v0-legacy)
+_legacy/
 
 # System files
 .DS_Store

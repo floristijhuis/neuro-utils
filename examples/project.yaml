@@ -1,0 +1,42 @@
+# Example project config for neuro-utils v1.
+# Paths are placeholders; the tool settings reproduce the fMRIPrep call used for MemoryLane
+# (see the toml in derivatives/fmriprep/sub-*/log/*/fmriprep.toml for the authoritative record).
+
+project: MemoryLane
+bids_dir: /path/to/MemoryLane/data_bids
+derivatives_dir: /path/to/MemoryLane/derivatives      # outputs go to <derivatives_dir>/<tool>
+scratch_dir: /home/USER/projects/scratch              # local disk: work dirs (+ staged data)
+stage_data: true          # copy selected subjects to scratch and outputs back afterwards
+# log_dir: defaults to <derivatives_dir>/logs
+# fs_license: defaults to $FS_LICENSE, else $FREESURFER_HOME/license.txt
+
+resources:
+  n_cpus: 16
+  mem_gb: 64
+  omp_nthreads: 8
+
+# Default selection when -s/-n are not given (empty = everything in bids_dir).
+subjects: [P005, P010, P022, P025, P027, P037, P049, P050, P051, P056,
+           P060, P062, P063, P066, P071, P073, P080, P083, P088, P091]
+sessions: []
+
+# Optional. May select runs, acquisitions, etc., but NOT subject/session (use -s/-n).
+bids_filter_file: /path/to/neuro-utils/examples/bids_filter_file.json
+
+freesurfer:
+  version: 7.3.0          # checked against `recon-all -version`
+  # t1w_glob: "sub-{subject}/ses-1/anat/sub-{subject}_ses-1_T1w.nii.gz"
+  args: []
+
+fmriprep:
+  image: nipreps/fmriprep:25.2.3
+  reuse_freesurfer: true  # use finished recons in <derivatives_dir>/freesurfer
+  args: [--output-spaces, MNI152NLin6Asym, MNI152NLin2009cAsym, T1w, func,
+         fsnative, fsaverage, fsaverage5, fsaverage6,
+         --use-syn-sdc, --force, syn-sdc, --ignore, fieldmaps,
+         --stop-on-first-crash, --verbose]
+
+mriqc:
+  image: nipreps/mriqc:24.0.2
+  args: [--no-sub]
+  group_args: []

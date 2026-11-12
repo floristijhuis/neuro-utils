@@ -1,70 +1,97 @@
-# General Neuroimaging Processing Repository
+# neuro-utils
 
-The neuro-utils repository contains the master script `pipeline.py`. With this command, you can modularly run different elements of the processing pipeline. The pipeline assumes a specific kind of file and folder organization (specified below) and works best with BIDS-type datasets (outputs are, as a standard, mostly written in a BIDS-type format into the 'derivatives' folder of the project you're working on).
-
-## How to run the pipeline from the command line
-A smart way to call the pipeline is by using the following command on Tux17:
-```nohup python -u pipeline.py -p ... -m ... > ~/projects/pipeline_logs/DATE_pipeline_MODULE.log & disown```
-
-This way, the output of the master command is piped into a log folder, and the full pipeline is not aborted when you are disconnected from the terminal.
+Small wrappers to run **FreeSurfer**, **fMRIPrep** and **MRIQC** on a BIDS dataset,
+configured by one project YAML. Outputs go to `<derivatives_dir>/<tool>`.
 
 ```
-usage: pipeline.py 
-[-h] -p PROJECT -m MODULES [MODULES ...] 
-[-s SUBJECT [SUBJECT ...]]
-[-n SESSION [SESSION ...]] 
-[-r RUN [RUN ...]]
-[-x [EXTRA_ARGS ...]]
-
-Master pipeline script for neuroimaging data processing.
-
-options:
-  -h, --help            show this help message and exit
-  -p PROJECT, --project PROJECT
-                        Project name
-  -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Space-separated list of modules to run
-  -s SUBJECT [SUBJECT ...], --subject SUBJECT [SUBJECT ...]
-                        Space-separated list of subject IDs (optional)
-  -n SESSION [SESSION ...], --session SESSION [SESSION ...]
-                        Space-separated list of session numbers (optional)
-  -r RUN [RUN ...], --run RUN [RUN ...]
-                        Space-separated list of run numbers (optional)
-  -x [EXTRA_ARGS ...], --extra_args [EXTRA_ARGS ...]
-                        Extra args for module scripts
+neuro-utils freesurfer   -c project.yaml [-s SUB ...]
+neuro-utils fmriprep     -c project.yaml [-s SUB ...] [-n SES ...] [-- extra fmriprep args]
+neuro-utils mriqc        -c project.yaml [-s SUB ...] [-n SES ...] [-- extra mriqc args]
+neuro-utils mriqc-group  -c project.yaml
 ```
 
-## How the pipeline works
-Into `pipeline.py`, you input the name of a project you're working on. The pipeline subsequently looks into `/home/USER/projects/PROJECT`, to a file called `configs/dataset.yaml`. This file contains information about the dataset, subjects, derivatives folder, etc. The pipeline loads this `yaml` to create a project-specific log dir. It then loops over the modules you have provided, and executes the modules individually. 
+`--dry-run` logs the exact commands without copying or running anything. Use it to check a
+configuration, or to get the literal fMRIPrep/MRIQC call for a methods section.
 
-As extra options to the pipeline command, you may specify subjects, sessions, or runs that you want to process (in case you do not want to process everything at the same time). In case you don't specify these options, the pipeline will assume you want to process the entire dataset and feed this into the individual modules. 
+## Install
 
-Each module (indicated with a number, which corresponds to a processing step; specified in the`pipeline.py` header) has its corresponding script file in `neuro-utils/scripts`. These scripts are run sequentially. In the `pipeline.py` script, each module is called with the following arguments:
+```bash
+pip install -e /path/to/neuro-utils     # inside the conda env you use for processing
 ```
-parser.add_argument("-c", "--config", required=True, help="Path to project YAML config file")
 
-parser.add_argument("-s", "--subjects", nargs="+", help="Space-separated list of subject IDs (optional)")
+Requirements: Python ≥ 3.10 with PyYAML; Docker (rootless Docker is started automatically
+if it is not running); a native FreeSurfer install for `freesurfer`; a FreeSurfer license.
 
-parser.add_argument("-n", "--sessions", nargs="+", help="Space-separated list of session numbers (optional)")
+## Project YAML
 
-parser.add_argument("-r", "--runs", nargs="+", help="Space-separated list of run numbers (optional)")
+See [`examples/project.yaml`](examples/project.yaml). The tool versions (`image:`, FreeSurfer
+`version:`) and all tool-specific flags (`args:`) live in the project YAML, not in this
+repository, so the YAML is the record of how a dataset was processed.
+
+**Selecting data**
+- Subjects: `-s` on the command line, else `subjects:` in the YAML, else all in `bids_dir`.
+- Sessions: `-n`, else `sessions:`, else all. Passed as `--session-label` (fMRIPrep) and
+  `--session-id` (MRIQC). FreeSurfer ignores sessions and uses `freesurfer: t1w_glob`.
+- Runs, acquisitions, etc.: the `bids_filter_file` (keys `t1w`, `bold`, `fmap`, ...).
+  It must **not** contain `subject` or `session`, and values must be strings
+  (`"run": ["1", "2"]`). neuro-utils checks both, because
+  fMRIPrep 25.2.3 fails on either (`Conflicting entities for "subject"` / a `TypeError`), and
+  MRIQC 24 silently lets a filter's `subject`/`session` override the command line.
+
+## What a run does
+
+1. Writes one log file: `<log_dir>/<timestamp>_<tool>.log` (default `log_dir` is
+   `<derivatives_dir>/logs`), with the command line, the YAML, the tool version and
+   all tool output.
+2. If `stage_data: true`, copies the top-level BIDS files and only the selected subjects to
+   `<scratch_dir>/<project>/<tool>_<timestamp>/` (and, for fMRIPrep, their finished FreeSurfer
+   folders). The tool's work directory is always on scratch.
+3. Runs the tool, copies its outputs to `<derivatives_dir>/<tool>`, and deletes the workspace.
+   **If the tool fails, the workspace is kept** for inspection; delete it yourself afterwards.
+
+Run long jobs detached; the log file already has all the output:
+
+```bash
+setsid nohup neuro-utils fmriprep -c project.yaml > /dev/null 2>&1 &
 ```
-If you want to include a new module in the pipeline, you should be sure that this logic is accepted in the module-specific script.
 
-## Logs
-There are three types of logs created during the processing:
-- *Master pipeline log file*: This is an overarching log file for the entire pipeline. It just contains basic output for different processing modules (e.g.; **Module X started, finished at time X**), and you can choose a custom location for this (based on where you pipe the output of the master pipeline command).
-- *Module-specific log file:* These log files are created in the folder `~/projects/PROJECT/logs/`. They contain all the detailed output created during the individual processing modules.
-- *Overall failure-success log file*: This log file is created in `~/projects/pipeline_summary.csv`, and only includes basic information about each module you ran (e.g. time, arguments), and whether it finished successfully or not.
+`setsid` gives the run its own process group, which makes stopping it clean:
 
-## Crashes, working directories, etc.
-Generally, the modules are programmed such that they process everything on a scratch directory on Tux17, as this is faster than loading from the mounted FMG research drive [[How to mount FMG-research on Tux17]]. This scratch folder is located in `~/projects/scratch`, with an individual folder for each project and each processing module. This is a working directory where the files are stored/processed until the module is finished, after which the outputs are put back in the `derivatives` folder. This happens at the start of each module script. At the end, the working directory is removed, but if the module crashes the files are still there. In that case, you might have to remove it yourself.
+```bash
+pgrep -af neuro-utils          # PID of the run (= its process group ID with setsid)
+kill -- -<PID>                 # stops neuro-utils, recon-all and all their child processes
+docker ps; docker stop <id>    # containers are not children of neuro-utils: stop them too
+```
 
-If something goes wrong with the pipeline, you should kill the master command.
-- `ps -ef | grep pipeline.py` to get the pid
-- `pstree -p PID` to get the tree of processes
-- `pkill -TERM -P PID` to kill the tree
+Killing only `neuro-utils` or `recon-all` leaves recon-all's child programs (`mri_*`, ANTs)
+running.
 
-When you run a complex pipeline (e.g. in Docker), the processing container may keep running even if you kill the main pipeline command. To kill the docker container;
-- `docker ps`
-- `docker stop <container_id>`
+## Tool notes
+
+**FreeSurfer** (`recon-all -all`, native install). Refuses to run if `recon-all -version` does
+not contain `freesurfer: version`. Subjects with `scripts/recon-all.done` are skipped; an
+unfinished subject folder must be removed before rerunning. Subjects run in parallel
+(~4 GB RAM and at most 8 OpenMP threads per subject; `-parallel` hemispheres when there are
+enough cores, which doubles the cores per subject); see `neuro_utils/freesurfer.py`.
+
+**fMRIPrep**. `--nprocs`, `--omp-nthreads` and `--mem` come from `resources:` (memory is
+passed as `<mem_gb>G`; a bare number would be read as MB). With `reuse_freesurfer: true`,
+finished reconstructions in `<derivatives_dir>/freesurfer` are passed as `--fs-subjects-dir`;
+neuro-utils stops if a selected subject has no finished reconstruction there.
+
+**MRIQC**. `--mem` is in GB here. `mriqc-group` needs participant-level output in
+`<derivatives_dir>/mriqc`, and MRIQC 24 needs the subject folders present in the BIDS
+input even at group level, so these are staged too.
+
+## Tests
+
+```bash
+python -m unittest discover tests
+```
+
+These check the configuration rules and the generated commands; they need neither Docker nor
+FreeSurfer.
+
+## History
+
+`v0-legacy` (git tag) is the earlier `pipeline.py` + module scripts + bash-wrapper version.

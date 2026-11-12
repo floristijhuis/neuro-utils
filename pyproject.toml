@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuro-utils"
+dynamic = ["version"]
+description = "Run FreeSurfer, fMRIPrep and MRIQC on BIDS datasets from one project YAML"
+authors = [{ name = "Floris Tijhuis" }]
+requires-python = ">=3.10"
+dependencies = ["pyyaml"]
+
+[project.scripts]
+neuro-utils = "neuro_utils.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "neuro_utils.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["neuro_utils*"]
