@@ -108,6 +108,13 @@ class CommandTests(unittest.TestCase):
         self.assertIn(f"{Path(self.tmp.name) / 'nostage' / 'bids'}:/data:ro", out)
 
 
+class DockerCommandTests(unittest.TestCase):
+    def test_paths_with_colons_are_refused(self):
+        from neuro_utils.containers import docker_command
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            docker_command("img", [("/run/user/1/gvfs/smb-share:server=x/data", "/data", True)], [])
+
+
 class FreeSurferTests(unittest.TestCase):
     def test_allocate(self):
         self.assertEqual(allocate(16, 64, 1), (1, 8, True))    # 16 cores for one subject

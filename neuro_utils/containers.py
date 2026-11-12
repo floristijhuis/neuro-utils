@@ -72,5 +72,9 @@ def docker_command(image, mounts, args):
     """Build a `docker run` command; mounts are (host_path, container_path, read_only)."""
     cmd = ["docker", "run", "--rm"]
     for host, container, read_only in mounts:
+        if ":" in str(host):
+            # e.g. a resolved gvfs path (.../smb-share:server=...); use the symlink instead
+            raise ValueError(f"Docker cannot mount a path containing ':' : {host}. "
+                             "Use a path without colons, e.g. a symlink such as ~/research_drive.")
         cmd += ["-v", f"{host}:{container}{':ro' if read_only else ''}"]
     return cmd + [image] + [str(a) for a in args]
