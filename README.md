@@ -29,14 +29,51 @@ See [`examples/project.yaml`](examples/project.yaml). The tool versions (`image:
 repository, so the YAML is the record of how a dataset was processed.
 
 **Selecting data**
-- Subjects: `-s` on the command line, else `subjects:` in the YAML, else all in `bids_dir`.
-- Sessions: `-n`, else `sessions:`, else all. Passed as `--session-label` (fMRIPrep) and
-  `--session-id` (MRIQC). FreeSurfer ignores sessions and uses `freesurfer: t1w_glob`.
-- Runs, acquisitions, etc.: the `bids_filter_file` (keys `t1w`, `bold`, `fmap`, ...).
-  It must **not** contain `subject` or `session`, and values must be strings
-  (`"run": ["1", "2"]`). neuro-utils checks both, because
-  fMRIPrep 25.2.3 fails on either (`Conflicting entities for "subject"` / a `TypeError`), and
-  MRIQC 24 silently lets a filter's `subject`/`session` override the command line.
+
+Selection works in levels. Each level has exactly one place where it is set:
+
+| Level | Where | Default if not set |
+| --- | --- | --- |
+| Subjects | `-s` on the command line, else `subjects:` in the YAML | all `sub-*` in `bids_dir` |
+| Sessions | `-n` on the command line, else `sessions:` in the YAML | all sessions |
+| Runs, acquisitions, tasks, which T1w/fieldmap, ... | `bids_filter_file` (optional) | everything the tool finds |
+
+- Subjects and sessions go to the tools' own options: `--participant-label`, plus
+  `--session-label` (fMRIPrep) or `--session-id` (MRIQC). With `stage_data: true`, only the
+  selected subjects are copied to scratch.
+- FreeSurfer ignores sessions and the filter file; it uses one T1w per subject, found with
+  `freesurfer: t1w_glob`. `mriqc-group` summarizes all existing participant-level output and
+  ignores the filter file too.
+
+**BIDS filter file**
+
+The filter file is for selection *within* the chosen subjects and sessions. It is passed as
+`--bids-filter-file` to `fmriprep` and `mriqc` only. Each key is one of the tools' data queries
+(`t1w`, `t2w`, `bold`, `fmap`, `sbref`, `dwi`, ...), and its value lists the BIDS entities that a
+file must have. Example ([`examples/bids_filter_file.json`](examples/bids_filter_file.json)):
+
+```json
+{
+    "t1w": {"datatype": "anat", "acquisition": null, "suffix": "T1w"},
+    "bold": {"datatype": "func", "acquisition": null, "run": ["1", "2"], "suffix": "bold"}
+}
+```
+
+This uses only T1w images without an `acq-` entity, and only BOLD runs 1 and 2. `null` means
+"this entity must be absent". Each entry is merged into the tool's default query for that key,
+so you only need to list the entities you want to restrict (`datatype`/`suffix` are harmless).
+
+There is no `--runs` option: to process only some runs (or one task, or one acquisition), write
+a filter file and set `bids_filter_file:` in the YAML. Use a separate YAML (or filter file) for
+such a one-off run, so that the YAML stays an accurate record of what was processed.
+
+Two rules, which neuro-utils checks before anything runs:
+- The filter file must **not** contain `subject` or `session`. Select those with `-s`/`-n` or the
+  YAML. fMRIPrep 25.2.3 fails with `Conflicting entities for "subject"`, and MRIQC 24 silently
+  lets a filter's `subject`/`session` override the command line, so it would process
+  other subjects than you asked for.
+- Values must be strings (`"run": ["1", "2"]`, not `[1, 2]`): fMRIPrep 25.2.3 crashes with a
+  `TypeError` on numbers.
 
 ## What a run does
 
